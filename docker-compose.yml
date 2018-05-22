@@ -1,0 +1,30 @@
+version: '3'
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.2.4
+    container_name: elasticsearch_sl
+    environment: ['http.host=0.0.0.0', 'transport.host=127.0.0.1']
+    ports: ['127.0.0.1:9200:9200']
+    volumes:
+      - ./data/elasticsearch:/usr/share/elasticsearch/data
+
+  setup_elasticsearch:
+    image: centos:7
+    container_name: setup_elasticsearch
+    volumes: ['./scripts/setup_elasticsearch.sh:/usr/local/bin/setup_elasticsearch.sh:ro']
+    command: ['/bin/bash', '-c', 'cat /usr/local/bin/setup_elasticsearch.sh | tr -d "\r" | bash']
+    depends_on: ['elasticsearch']
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:6.2.4
+    container_name: kibana_sl
+    ports: ['127.0.0.1:5601:5601']
+    depends_on: ['elasticsearch']
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:6.2.4
+    container_name: logstash_sl
+    volumes:
+      - ./config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+      - ./input_data/:/usr/share/logstash/es_slowlogs/
+    depends_on: ['elasticsearch']
